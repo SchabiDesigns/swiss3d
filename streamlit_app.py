@@ -2,7 +2,6 @@
 import streamlit as st
 import streamlit.components.v1 as components
 from sys import platform
-import webbrowser
 
 # map
 import folium
@@ -11,7 +10,6 @@ from folium.plugins import Fullscreen
 from folium.plugins import Draw
 from shapely.geometry import Polygon
 import geopandas as gpd
-import numpy as np
 
 # 3d
 import pyvista as pv
@@ -41,8 +39,8 @@ st.set_page_config(
     }
 )
 
-if platform == "linux" or platform == "linux2":
-    pv.start_xvfb()
+# if platform == "linux" or platform == "linux2":
+#     pv.start_xvfb()
 
 st.sidebar.image("media/swiss3d.png")
 
