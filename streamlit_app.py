@@ -32,8 +32,8 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={
-    #    "Discussion": "tbd",
-    #    "Report a bug": "tbd",
+        "Discussion": "https://github.com/SchabiDesigns/swiss3d/discussions",
+        "Report a bug": "https://github.com/SchabiDesigns/swiss3d/issues",
         "About": """
         Developed by [SchabiDesigns](https://schabidesigns.ch).  
         Data from [swisstopo](https://www.swisstopo.admin.ch).
