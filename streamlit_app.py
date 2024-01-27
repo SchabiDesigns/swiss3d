@@ -32,7 +32,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={
-        "Discussion": "https://github.com/SchabiDesigns/swiss3d/discussions",
+        "Get help": "https://github.com/SchabiDesigns/swiss3d/discussions",
         "Report a bug": "https://github.com/SchabiDesigns/swiss3d/issues",
         "About": """
         Developed by [SchabiDesigns](https://schabidesigns.ch).  
