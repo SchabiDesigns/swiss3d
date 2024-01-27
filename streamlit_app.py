@@ -39,8 +39,8 @@ st.set_page_config(
     }
 )
 
-# if platform == "linux" or platform == "linux2":
-#     pv.start_xvfb()
+if platform == "linux" or platform == "linux2":
+    pv.start_xvfb()
 
 st.sidebar.image("media/swiss3d.png")
 
