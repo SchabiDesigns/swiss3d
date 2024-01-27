@@ -82,14 +82,6 @@ def get_border():
 def reset_create():
     st.session_state["create"] = False
 
-def open_page(url):
-    open_script= """
-        <script type="text/javascript">
-            window.open('%s', '_blank').focus();
-        </script>
-    """ % (url)
-    components.html(open_script)
-
 
 # __MAIN PAGE__
 if not st.session_state["downloaded"]:

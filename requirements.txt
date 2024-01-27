@@ -8,3 +8,4 @@ vtk
 geopandas
 folium
 streamlit-folium
+geojson
