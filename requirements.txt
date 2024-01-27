@@ -1,0 +1,10 @@
+streamlit
+pyvista
+stpyvista
+numpy
+geopandas
+pyogrio
+vtk
+geopandas
+folium
+streamlit-folium
