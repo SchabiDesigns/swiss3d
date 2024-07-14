@@ -289,7 +289,7 @@ with st.sidebar: # GRID
         https://github.com/SchabiDesigns/swiss3d
         
         
-        🍻 **Support**
+        🍻 **Support**  
         https://buymeacoffee.com/schabi
         """
         )
