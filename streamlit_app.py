@@ -98,27 +98,24 @@ def build_stl(area_3d):
 
 def reset_page():
     delete_stl()
-    for button in [key for key in st.session_state.keys() if key.startswith("button_")]:
-        del button
+    st.session_state["created"] = False
+    st.session_state["downloaded"] = False
     streamlit_js_eval(js_expressions="parent.window.location.reload()")
-    
-def toggle_session_state(state):
-    st.session_state[state] = not st.session_state[state]
 
 
 # __MAIN PAGE__
-if not st.session_state["downloaded"]:
-    if not st.session_state["created"]:
-        with st.sidebar:
-            """
-
+if st.session_state["downloaded"] == False:
+    if st.session_state["created"] == False:
+        st.sidebar.markdown("""
             # Instruction
             1. Draw your area in Switzerland
             2. Inspect the 3D-model  
             3. Download STL
-            """
+            """)
+        
+        button_container = st.sidebar.container(height=100, border=False)
 
-            placeholder = st.container(height=90, border=False)
+            
 
         m = folium.Map(attr="swisstopo")
 
@@ -167,26 +164,29 @@ if not st.session_state["downloaded"]:
 
             not_in_swiss = not all(geo.covered_by(get_border()))
 
-            with placeholder:
-                if not_in_swiss:
-                    st.error("The area must be in switzerland")
-                else:
-                    st.button("Build 3D-object", key="button_build_3d", disabled=not_in_swiss, use_container_width=True, type="primary", on_click=toggle_session_state("created"))
+            
+            if not_in_swiss:
+                button_container.error("The area must be in switzerland")
+            else:
+                if button_container.button("Build 3D-object", key="button_build_3d", disabled=not_in_swiss, use_container_width=True, type="primary"):
+                    st.session_state["created"] = True
+                    st.rerun()
         else:
-            with placeholder:
-                st.info("No drawings on the map")
-
-    else:
+            button_container.info("No drawings on the map")
+            
+    if st.session_state["created"] == True:
         if st.session_state["type"]=="Polygon":
-            with st.sidebar:
-                """
+            st.sidebar.markdown("""
                 # Instruction
                 1. Draw your area in Switzerland ✔️ 
                 2. Inspect the 3D-model ⏳
                 3. Download STL
-                """
-                placeholder = st.container(height=90, border=False)
-            
+                """)
+            button_container = st.sidebar.container(height=100, border=False)
+            col1, col2 = button_container.columns([0.3, 0.7], gap="small")
+            if col1.button("Back", use_container_width=True, key="button_inspect_back"):
+                reset_page()
+                
             df, meta = read_data(st.session_state["sponsor"])
             with st.spinner("creating your custom 3D model..."):
                 area = filter_dataframe(df, st.session_state["points"], **meta)
@@ -212,26 +212,21 @@ if not st.session_state["downloaded"]:
                 pl.reset_camera(bounds=mesh.bounds)
                 
                 stpyvista(pl, use_container_width=True)
-            with placeholder:
-                col1, col2 = st.columns([0.3, 0.7], gap="small")
-                with col1:
-                    if st.button("Back", use_container_width=True, key="button_inspect_back"):
-                        reset_page()
-                with col2:
-                    st.download_button("Download your STL file", data=build_stl(area_3d), file_name="your_custom_model.stl", type="primary", use_container_width=True, on_click=toggle_session_state("downloaded"))
+            
+            if col2.download_button("Download your STL file", data=build_stl(area_3d), file_name="your_custom_model.stl", type="primary", use_container_width=True, ):
+                st.session_state["downloaded"] = True
+                st.rerun()
                         
                     
-else:
-    with st.sidebar:
-        """
+if st.session_state["downloaded"] == True:
+    st.sidebar.markdown("""
         # Instruction
         1. Draw your area in Switzerland ✔️ 
         2. Inspect the 3D-model ✔️ 
         3. Download STL ✔️ 
-        """
-        
-        if st.button("Create another model", use_container_width=True, type="primary", key="button_survey_new"):
-            reset_page()
+        """)
+    
+    button_container = st.sidebar.container(height=100, border=False)
     
     """
     ## Done!
@@ -272,6 +267,9 @@ else:
                 st.rerun()
     else:
         cols[1].info("Thanks for your feedback!")
+        
+    if button_container.button("Create another model", use_container_width=True, type="primary", key="button_survey_new"):
+        reset_page()
 
 # __INFORMATION__
 with st.sidebar: # GRID
