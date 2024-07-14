@@ -67,7 +67,7 @@ if "points" not in st.session_state:
     st.session_state["points"] = []
     
 if platform == "linux" or platform == "linux2":
-    if "IS_XVFB_RUNNING" not in st.session_state:
+    if "IS_XVFB_RUNNING" not in st.session_state:   
         start_xvfb()
         st.session_state.IS_XVFB_RUNNING = True 
 
@@ -94,6 +94,10 @@ def get_border():
 def reset_create():
     st.session_state["create"] = False
     delete_stl()
+
+def build_stl(area_3d):
+    create_stl(area_3d)
+    st.session_state["downloaded"] = True
 
 
 # __MAIN PAGE__
@@ -207,7 +211,7 @@ if not st.session_state["downloaded"]:
                 with col1:
                     st.button("Back", on_click=reset_create, use_container_width=True)
                 with col2:
-                    st.download_button("Download your STL file", create_stl(area_3d), file_name="your_custom_model.stl", type="primary", key="downloaded", use_container_width=True)
+                    st.download_button("Download your STL file", build_stl(area_3d), file_name="your_custom_model.stl", type="primary", use_container_width=True)
                     
 else:
     with st.sidebar:
