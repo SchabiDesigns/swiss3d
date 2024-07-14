@@ -2,6 +2,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 from sys import platform
+import os
 
 # map
 import folium
@@ -14,6 +15,7 @@ import geopandas as gpd
 # 3d
 import pyvista as pv
 from stpyvista import stpyvista
+from stpyvista.utils import start_xvfb
 
 # own 
 from src.web.data import *
@@ -21,6 +23,9 @@ from src.web.build import *
 from src.web.coords import *
 from src.web.filter import *
 from src.web.map import *
+
+# plot
+import plotly.express as px
 
 
 # __PAGE CONFIGS__
@@ -39,23 +44,30 @@ st.set_page_config(
     }
 )
 
-if platform == "linux" or platform == "linux2":
-    pv.start_xvfb()
-
+  
 st.sidebar.image("media/swiss3d.png")
 
 # __INIT STATES__
 if "create" not in st.session_state:
     st.session_state["create"] = False
+    delete_stl()
 
 if "downloaded" not in st.session_state:
     st.session_state["downloaded"] = False
 
 if "sponsor" not in st.session_state:
     st.session_state["sponsor"] = False
+    
+if "given_feedback" not in st.session_state:
+    st.session_state["given_feedback"] = False
 
 if "points" not in st.session_state:
     st.session_state["points"] = []
+    
+if platform == "linux" or platform == "linux2":
+    if "IS_XVFB_RUNNING" not in st.session_state:
+        start_xvfb()
+        st.session_state.IS_XVFB_RUNNING = True 
 
 
 # __VARIABLES__
@@ -79,6 +91,7 @@ def get_border():
 
 def reset_create():
     st.session_state["create"] = False
+    delete_stl()
 
 
 # __MAIN PAGE__
@@ -193,17 +206,8 @@ if not st.session_state["downloaded"]:
                     st.button("Back", on_click=reset_create, use_container_width=True)
                 with col2:
                     st.download_button("Download your STL file", create_stl(area_3d), file_name="your_custom_model.stl", type="primary", key="downloaded", use_container_width=True)
+                    
 else:
-    st.balloons()
-    """
-    ## Done!
-    You will find your custom model in the download folder.  
-    
-    
-    """
-    with st.expander("Please take a minute for a small feedback."):
-        components.iframe("https://forms.gle/oWQ9Mah8Mx6ma1oYA", height=window_height)
-    
     with st.sidebar:
         """
         # Instruction
@@ -214,7 +218,46 @@ else:
         placeholder = st.container(height=90, border=False)
         with placeholder:
             st.button("Create another model", on_click=reset_create, use_container_width=True, type="primary")
+    
+    st.balloons()
+    """
+    ## Done!
+    You will find your custom model in the **download folder**.  
+    """
+    st.text("")
+    st.divider()
+    st.markdown("**If you have a minute to share your experience...**")
+    cols = st.columns((.6,.4), gap="large")
+    
+    if os.path.isfile("survey_results.pkl"):
+        survey_results = pd.read_pickle("survey_results.pkl")
+        df_plot = survey_results.melt(var_name="Feature", value_name="Rating").sort_values("Feature")
+        fig = px.bar_polar(df_plot, r="Rating", theta="Feature", color="Feature")
+        fig = px.box(df_plot, color="Feature", orientation="h", y="Feature", x="Rating", range_x=(0,10), title=f"Feedback<br><sub>from {survey_results.shape[0]} users")
+        fig.add_vline(5, line_color="grey")
+        cols[0].plotly_chart(fig, use_container_width=True)
+    else:
+        cols[0].info("no survey results available yet...")
+    if not st.session_state["given_feedback"]:
+        with cols[1].form("feedback"):
+            features = {}
+            for feature in np.sort(["Usability", "Simplicity", "Design", "Appreciation"]):
+                features[feature] = st.slider(feature, 0, 10, value=5, help="from 0 ~ horrible to 10 ~ awesome")
 
+            # Every form must have a submit button.
+            submitted = st.form_submit_button("Add your feedback", type="primary", use_container_width=True)
+            if submitted:
+                if os.path.isfile("survey_results.pkl"):
+                    survey_result = pd.DataFrame(features, index=[survey_results.shape[0]])
+                    survey_results = pd.concat([survey_results, survey_result])
+                    survey_results.to_pickle("survey_results.pkl")
+                else:
+                    survey_result = pd.DataFrame(features, index=[0])
+                    survey_result.to_pickle("survey_results.pkl")
+                st.session_state["given_feedback"] = True
+                st.rerun()
+    else:
+        cols[1].info("Thanks for your feedback!")
 
 # __INFORMATION__
 with st.sidebar: # GRID
@@ -225,67 +268,9 @@ with st.sidebar: # GRID
 
         🌍 Deployed App is fixed to **200m**.   
         🖥️ Local up to **25m** is supported.  
-          
-        Become a sponsor and available grid resolutions up to **0.5m**! Get in contact with the developer...  
+           
+           
+        Become a sponsor and available grid resolutions up to **0.5m**! Get in contact with me...  
         📬 https://schabidesigns.ch
         """
         )
-
-
-# __DEVELOPMENT__
-if DEV:
-    with st.sidebar:
-        st.divider()
-        """
-        ## Licence
-        """
-        st.toggle("sponsor", key="sponsor")
-
-        if st.session_state["sponsor"]:
-            st.info("pro version (25m)")
-        else:
-            st.info("standard version (200m)")
-
-        st.divider()
-        """## Development
-        """
-        with st.expander("dataset info"):
-            try:
-                st.write("shape of df: " + df.shape)
-                st.write("shape of area: " + area.shape)
-            except:
-                st.write("actually no map data")
-
-        with st.expander("area"):
-            try:
-                bounds = get_bounds_from_points(st.session_state["points"], 200)
-                bounds
-            except:
-                st.write("actually no area data")
-
-        with st.expander("session state"):
-            st.session_state
-    
-
-# __OTHER STUF TO NOT FORGET__
-# with st.sidebar:
-#     tile = st.selectbox("Map Style",options=["Standard", "Satellite"], index=0)
-
-        
-# # add satellite images doens"t work with polyline
-# if tile!="Standard":
-#     folium.TileLayer(
-#         tiles   = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-#         attr    = "Esri",
-#         name    = "Esri Satellite",
-#         overlay = False,
-#         control = True
-#     ).add_to(m)
-
-# # check if circle in border
-# elif object["type"]=="Feature":
-#     geo = gpd.GeoSeries([Point(object["geometry"]["coordinates"])],**args)
-#     geo = geo.to_crs(epsg=32634).buffer(object["properties"]["radius"]).to_crs(epsg=4326)
-#     st.sidebar.info("Size of the circle can be minimal different.")
-        
-        

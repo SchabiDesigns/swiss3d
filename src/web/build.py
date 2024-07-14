@@ -3,9 +3,12 @@ import pyvista as pv
 
 import sys
 import vtk
+import os
 
 from src.web.coords import coords2LV03
 from shapely.geometry import Polygon
+
+from src.web.data import CACHE_PATH
 
 def create_surface(df, **kwargs):
     x = np.ones(df.shape)
@@ -50,7 +53,7 @@ def cut_model(model, border, **kwargs):
     return area
 
 
-def create_stl(object, output_name="data/cache/model.stl"):
+def create_stl(object, output_name="model.stl"):
     surface_filter = vtk.vtkDataSetSurfaceFilter()
     surface_filter.SetInputDataObject(object)
 
@@ -58,7 +61,11 @@ def create_stl(object, output_name="data/cache/model.stl"):
     triangle_filter.SetInputConnection(surface_filter.GetOutputPort())
 
     writer = vtk.vtkSTLWriter()
-    writer.SetFileName(output_name)
+    writer.SetFileName(CACHE_PATH + output_name)
     writer.SetInputConnection(triangle_filter.GetOutputPort())
     writer.Write()
-    return open(output_name, mode='r')
+    return open(CACHE_PATH + output_name, mode='r')
+
+def delete_stl(filepath=CACHE_PATH + "model.stl"):
+    if os.path.isfile(filepath):
+        os.remove(filepath)

@@ -4,6 +4,7 @@ import pickle
 import zipfile
 import requests
 import io
+import os
 
 
 LINKS = {
@@ -11,6 +12,7 @@ LINKS = {
     "dhm200": r"https://data.geo.admin.ch/ch.swisstopo.digitales-hoehenmodell_25/data.zip"
 }
 
+CACHE_PATH = "data/cache/"
 
 def read_file_lines(filepath, **kwargs):
     file = open(filepath, 'r')
@@ -57,7 +59,7 @@ def create_dataframe(data, meta, **kwargs):
 
 def download_file(url):
 
-    path = "data/dhm/"
+    path = CACHE_PATH
 
     r = requests.get(url)
     z = zipfile.ZipFile(io.BytesIO(r.content))
@@ -85,7 +87,7 @@ def check_cache(file):
     print(file)
     if file in ["dhm25", "dhm200"]:
         try:
-            with open("data/cache/" + file + ".pkl",'rb') as f:
+            with open(CACHE_PATH + file + ".pkl",'rb') as f:
                 df, meta = pickle.load(f)
             return df, meta
         except:
@@ -96,8 +98,9 @@ def check_cache(file):
             
             df, meta = structure_file(filepath)
             print("file structured")
-            with open('data/cache/'+ file + ".pkl", 'wb') as f:  # open a text file
+            with open(CACHE_PATH + file + ".pkl", 'wb') as f:  # open a text file
                 pickle.dump((df, meta), f) # serialize the list
+            os.remove(filepath)
             return df, meta
             # except Exception as e:
             #     print("download failed", e)

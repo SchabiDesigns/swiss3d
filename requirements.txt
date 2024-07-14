@@ -9,3 +9,4 @@ geopandas
 folium
 streamlit-folium
 geojson
+plotly
