@@ -10,3 +10,5 @@ folium
 streamlit-folium
 geojson
 plotly
+panel>=1.4.1
+bokeh
