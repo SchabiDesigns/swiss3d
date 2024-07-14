@@ -96,8 +96,8 @@ def reset_create():
     delete_stl()
 
 def build_stl(area_3d):
-    create_stl(area_3d)
     st.session_state["downloaded"] = True
+    return create_stl(object=area_3d)
 
 
 # __MAIN PAGE__
@@ -225,7 +225,6 @@ else:
         with placeholder:
             st.button("Create another model", on_click=reset_create, use_container_width=True, type="primary")
     
-    st.balloons()
     """
     ## Done!
     You will find your custom model in the **download folder**.  
@@ -240,7 +239,7 @@ else:
         df_plot = survey_results.melt(var_name="Feature", value_name="Rating").sort_values("Feature")
         fig = px.bar_polar(df_plot, r="Rating", theta="Feature", color="Feature")
         fig = px.box(df_plot, color="Feature", orientation="h", y="Feature", x="Rating", range_x=(0,10), title=f"Feedback<br><sub>from {survey_results.shape[0]} users")
-        fig.add_vline(5, line_color="grey")
+        fig.add_vline(5, line_color="lightgrey", line_dash="dash")
         cols[0].plotly_chart(fig, use_container_width=True)
     else:
         cols[0].info("no survey results available yet...")
