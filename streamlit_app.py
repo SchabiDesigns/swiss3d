@@ -5,6 +5,7 @@ import os
 
 # app
 import streamlit as st
+from streamlit_js_eval import streamlit_js_eval
 
 # map
 import folium
@@ -50,18 +51,19 @@ st.set_page_config(
 st.sidebar.image("media/swiss3d.png")
 
 # __INIT STATES__
-if "create" not in st.session_state:
-    st.session_state["create"] = False
+if "created" not in st.session_state:
+    st.session_state["created"] = False
     delete_stl()
 
 if "downloaded" not in st.session_state:
     st.session_state["downloaded"] = False
 
-if "sponsor" not in st.session_state:
-    st.session_state["sponsor"] = False
-    
 if "given_feedback" not in st.session_state:
     st.session_state["given_feedback"] = False
+
+
+if "sponsor" not in st.session_state:
+    st.session_state["sponsor"] = False
 
 if "points" not in st.session_state:
     st.session_state["points"] = []
@@ -91,18 +93,22 @@ def read_data(sponsor):
 def get_border():
     return get_switzerland()
 
-def reset_create():
-    st.session_state["create"] = False
-    delete_stl()
-
 def build_stl(area_3d):
-    st.session_state["downloaded"] = True
     return create_stl(object=area_3d)
+
+def reset_page():
+    delete_stl()
+    for button in [key for key in st.session_state.keys() if key.startswith("button_")]:
+        del button
+    streamlit_js_eval(js_expressions="parent.window.location.reload()")
+    
+def toggle_session_state(state):
+    st.session_state[state] = not st.session_state[state]
 
 
 # __MAIN PAGE__
 if not st.session_state["downloaded"]:
-    if not st.session_state["create"]:
+    if not st.session_state["created"]:
         with st.sidebar:
             """
 
@@ -165,7 +171,7 @@ if not st.session_state["downloaded"]:
                 if not_in_swiss:
                     st.error("The area must be in switzerland")
                 else:
-                    st.button("Build 3D-object", key="create", disabled=not_in_swiss, use_container_width=True, type="primary")
+                    st.button("Build 3D-object", key="button_build_3d", disabled=not_in_swiss, use_container_width=True, type="primary", on_click=toggle_session_state("created"))
         else:
             with placeholder:
                 st.info("No drawings on the map")
@@ -209,9 +215,11 @@ if not st.session_state["downloaded"]:
             with placeholder:
                 col1, col2 = st.columns([0.3, 0.7], gap="small")
                 with col1:
-                    st.button("Back", on_click=reset_create, use_container_width=True)
+                    if st.button("Back", use_container_width=True, key="button_inspect_back"):
+                        reset_page()
                 with col2:
-                    st.download_button("Download your STL file", build_stl(area_3d), file_name="your_custom_model.stl", type="primary", use_container_width=True)
+                    st.download_button("Download your STL file", data=build_stl(area_3d), file_name="your_custom_model.stl", type="primary", use_container_width=True, on_click=toggle_session_state("downloaded"))
+                        
                     
 else:
     with st.sidebar:
@@ -221,9 +229,9 @@ else:
         2. Inspect the 3D-model ✔️ 
         3. Download STL ✔️ 
         """
-        placeholder = st.container(height=90, border=False)
-        with placeholder:
-            st.button("Create another model", on_click=reset_create, use_container_width=True, type="primary")
+        
+        if st.button("Create another model", use_container_width=True, type="primary", key="button_survey_new"):
+            reset_page()
     
     """
     ## Done!
@@ -231,20 +239,21 @@ else:
     """
     st.text("")
     st.divider()
-    st.markdown("**If you have a minute to share your experience...**")
+    st.subheader("Mini survey")
     cols = st.columns((.6,.4), gap="large")
     
     if os.path.isfile("survey_results.pkl"):
         survey_results = pd.read_pickle("survey_results.pkl")
         df_plot = survey_results.melt(var_name="Feature", value_name="Rating").sort_values("Feature")
         fig = px.bar_polar(df_plot, r="Rating", theta="Feature", color="Feature")
-        fig = px.box(df_plot, color="Feature", orientation="h", y="Feature", x="Rating", range_x=(0,10), title=f"Feedback<br><sub>from {survey_results.shape[0]} users")
+        fig = px.box(df_plot, color="Feature", orientation="h", y="Feature", x="Rating", range_x=(0,10), title=f"Collected feedback<br><sub>from {survey_results.shape[0]} users")
         fig.add_vline(5, line_color="lightgrey", line_dash="dash")
         cols[0].plotly_chart(fig, use_container_width=True)
     else:
         cols[0].info("no survey results available yet...")
     if not st.session_state["given_feedback"]:
         with cols[1].form("feedback"):
+            st.markdown("**If you have a minute to share your experience...**")
             features = {}
             for feature in np.sort(["Usability", "Simplicity", "Design", "Appreciation"]):
                 features[feature] = st.slider(feature, 0, 10, value=5, help="from 0 ~ horrible to 10 ~ awesome")
@@ -267,15 +276,20 @@ else:
 # __INFORMATION__
 with st.sidebar: # GRID
     st.markdown(
-        """
-        ## Grid Resolution
+        """        
+        ## Grid Resolutions
         Higher grid resolution means more resources, which results in higher hosting-costs.  
 
         🌍 Deployed App is fixed to **200m**.   
         🖥️ Local up to **25m** is supported.  
-           
-           
-        Become a sponsor and available grid resolutions up to **0.5m**! Get in contact with me...  
-        📬 https://schabidesigns.ch
+        
+        SPOILER *Grid resolutions up to **0.5m** are possible!*
+        
+        ⚙️ **Contribute**  
+        https://github.com/SchabiDesigns/swiss3d
+        
+        
+        ## Buy me a coffee
+        https://buymeacoffee.com/schabi
         """
         )
