@@ -17,6 +17,9 @@ RUN apt-get update && \
     xargs -a packages.txt apt-get install -y && \
     rm -rf /var/lib/apt/lists/*
 
+# Update and install curl for healthcheck
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 COPY . /app
 
