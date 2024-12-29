@@ -14,12 +14,14 @@ LINKS = {
 
 CACHE_PATH = "data/cache/"
 
+
 def read_file_lines(filepath, **kwargs):
+
     file = open(filepath, 'r')
     return file.readlines()
 
 def parse_lines(lines, n_head_lines, **kwargs):
-
+    
     header = lines[:n_head_lines]
     data = [line.strip().split(" ") for line in lines[n_head_lines:]]
     flat = []
