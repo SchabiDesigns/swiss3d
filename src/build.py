@@ -5,10 +5,11 @@ import sys
 import vtk
 import os
 
-from src.web.coords import coords2LV03
+from src.coords import coords2LV03
 from shapely.geometry import Polygon
 
-from src.web.data import CACHE_PATH
+from src.data import CACHE_PATH
+
 
 def create_surface(df, **kwargs):
     x = np.ones(df.shape)
@@ -51,7 +52,6 @@ def cut_model(model, border, **kwargs):
     area = model.clip_surface(border)
     area = area.elevation()
     return area
-
 
 def create_stl(object, output_name="model.stl"):
     surface_filter = vtk.vtkDataSetSurfaceFilter()

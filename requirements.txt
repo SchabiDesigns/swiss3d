@@ -13,3 +13,6 @@ plotly
 panel>=1.4.1
 bokeh
 streamlit_js_eval
+psutil
+stpyvista[trame]
+st-theme

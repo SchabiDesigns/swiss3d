@@ -6,6 +6,7 @@ import os
 # app
 import streamlit as st
 from streamlit_js_eval import streamlit_js_eval
+from streamlit_theme import st_theme
 
 # map
 import folium
@@ -17,15 +18,17 @@ import geopandas as gpd
 
 # 3d
 import pyvista as pv
-from stpyvista import stpyvista
-from stpyvista.utils import start_xvfb
+#from stpyvista import stpyvista
+from stpyvista.trame_backend import stpyvista
+#from stpyvista.utils import start_xvfb
 
 # own 
-from src.web.data import *
-from src.web.build import *
-from src.web.coords import *
-from src.web.filter import *
-from src.web.map import *
+from src.data import *
+from src.build import *
+from src.coords import *
+from src.filter import *
+from src.map import *
+from src.utilities import print_memory_usage
 
 # plot
 import plotly.express as px
@@ -46,10 +49,7 @@ st.set_page_config(
         """
     }
 )
-
-  
-st.sidebar.image("media/swiss3d.png")
-
+    
 # __INIT STATES__
 if "created" not in st.session_state:
     st.session_state["created"] = False
@@ -68,14 +68,17 @@ if "sponsor" not in st.session_state:
 if "points" not in st.session_state:
     st.session_state["points"] = []
     
+if "3d_plot" not in st.session_state:
+    st.session_state["3d_plot"] = None
+
 if platform == "linux" or platform == "linux2":
-    if "IS_XVFB_RUNNING" not in st.session_state:   
-        start_xvfb()
+    if "IS_XVFB_RUNNING" not in st.session_state: 
+        pv.start_xvfb()
         st.session_state.IS_XVFB_RUNNING = True 
 
 
 # __VARIABLES__
-window_height = 1000 # how to set to vh????
+window_height = 900 # how to set to vh????
 DEV = False
 
 # __FUNCTIONS__
@@ -98,12 +101,22 @@ def build_stl(area_3d):
 
 def reset_page():
     delete_stl()
+    # delete pyvista plotter to free memory
+    del st.session_state["3d_plot"]
     st.session_state["created"] = False
     st.session_state["downloaded"] = False
     streamlit_js_eval(js_expressions="parent.window.location.reload()")
 
 
+
 # __MAIN PAGE__
+theme = st_theme()
+if theme:
+    if theme.get("base")== "light":
+        st.sidebar.image("media/swiss3d.png")
+    else:
+        st.sidebar.image("media/swiss3d_dark.png")
+
 if st.session_state["downloaded"] == False:
     if st.session_state["created"] == False:
         st.sidebar.markdown("""
@@ -113,9 +126,7 @@ if st.session_state["downloaded"] == False:
             3. Download STL
             """)
         
-        button_container = st.sidebar.container(height=100, border=False)
-
-            
+        button_container = st.sidebar.container(height=140, border=False)
 
         m = folium.Map(attr="swisstopo")
 
@@ -141,18 +152,19 @@ if st.session_state["downloaded"] == False:
         # set level of zoom automatically to border
         m.fit_bounds(m.get_bounds(), padding=(10, 10))
         Fullscreen(position="topleft").add_to(m)
-        output = st_folium(m, use_container_width=True, height=window_height)
+        output = st_folium(m, use_container_width=True, height=window_height, key="map")
         st.session_state["output"] = output
         
         # if something has been drawn
         if output["last_active_drawing"] and output["all_drawings"]:
 
             geo = []
-
+            disabled = True
+            
             # check if drawing is within border
             st.session_state["geometry"] = output["last_active_drawing"]["geometry"]
             st.session_state["type"] = output["last_active_drawing"]["geometry"]["type"]
-
+            
             if st.session_state["type"]=="Polygon":
 
                 # store this information for cutting 3D object
@@ -160,17 +172,23 @@ if st.session_state["downloaded"] == False:
 
                 geo = gpd.GeoSeries(Polygon(st.session_state["points"]), crs="epsg:4326")
             else:
-                st.error("Drawing type not implemented yet... use other drawing object.")
+                button_container.error("Drawing type not implemented yet... use other drawing object.")
 
-            not_in_swiss = not all(geo.covered_by(get_border()))
-
-            
-            if not_in_swiss:
+            if all(geo.covered_by(get_border())):
+                # Convert to a projected coordinate system (e.g., EPSG:3857)
+                geo_projected = geo.to_crs(epsg=3857)
+                # Calculate the area in square meters
+                area_sqkm = geo_projected.area[0]/1e6
+                if area_sqkm<10000:
+                    disabled = False
+                else: 
+                    button_container.error(f"The area of {area_sqkm:,.0f}km² is too big to render. (max 10'000km²)".replace(",","'"))
+            else: 
                 button_container.error("The area must be in switzerland")
-            else:
-                if button_container.button("Build 3D-object", key="button_build_3d", disabled=not_in_swiss, use_container_width=True, type="primary"):
-                    st.session_state["created"] = True
-                    st.rerun()
+            
+            if button_container.button("Build 3D-object", key="button_build_3d", disabled=disabled, use_container_width=True, type="primary"):
+                        st.session_state["created"] = True
+                        st.rerun()
         else:
             button_container.info("No drawings on the map")
             
@@ -182,7 +200,7 @@ if st.session_state["downloaded"] == False:
                 2. Inspect the 3D-model ⏳
                 3. Download STL
                 """)
-            button_container = st.sidebar.container(height=100, border=False)
+            button_container = st.sidebar.container(height=140, border=False)
             col1, col2 = button_container.columns([0.3, 0.7], gap="small")
             if col1.button("Back", use_container_width=True, key="button_inspect_back"):
                 reset_page()
@@ -201,19 +219,20 @@ if st.session_state["downloaded"] == False:
                 model = create_model(mesh,zero)
                 border = create_border_from_points(st.session_state["points"], zero, height)
                 area_3d = cut_model(model, border)
-
+                
                 pl = pv.Plotter()
                 pl.add_mesh(area_3d.triangulate())
-        
                 ## Final touches
+                pl.background_color = theme.get("backgroundColor")
+                pl.remove_scalar_bar()
                 pl.camera_position = "xz"
                 pl.camera.azimuth = 0
                 pl.camera.elevation = 45
                 pl.reset_camera(bounds=mesh.bounds)
-                
-                stpyvista(pl, use_container_width=True)
+                stpyvista(pl, use_container_width=True, key=f"3d_plot{theme.get('base')}")
+                pv.close_all()
             
-            if col2.download_button("Download your STL file", data=build_stl(area_3d), file_name="your_custom_model.stl", type="primary", use_container_width=True, ):
+            if col2.download_button("Download your STL file", data=build_stl(area_3d), file_name="your_custom_model.stl", type="primary", use_container_width=True):
                 st.session_state["downloaded"] = True
                 st.rerun()
                         
@@ -226,12 +245,13 @@ if st.session_state["downloaded"] == True:
         3. Download STL ✔️ 
         """)
     
-    button_container = st.sidebar.container(height=100, border=False)
-    
-    """
-    ## Done!
-    You will find your custom model in the **download folder**.  
-    """
+    button_container = st.sidebar.container(height=140, border=False)
+
+    st.markdown(
+        """
+        ## Done!
+        You will find your custom model in the **download folder**.  
+        """)
     st.text("")
     st.divider()
     st.subheader("Mini survey")

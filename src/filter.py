@@ -1,4 +1,4 @@
-from src.web.coords import coords2LV03
+from src.coords import coords2LV03
 import numpy as np
 
 def filter_dataframe(df, points, cellsize, **kwargs):
