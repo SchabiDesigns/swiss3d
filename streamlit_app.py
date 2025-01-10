@@ -232,7 +232,7 @@ if st.session_state["downloaded"] == False:
                 stpyvista(pl, use_container_width=True, key=f"3d_plot{theme.get('base')}")
                 pv.close_all()
             
-            if col2.download_button("Download your STL file", data=build_stl(area_3d), file_name="your_custom_model.stl", type="primary", use_container_width=True):
+            if col2.download_button("Download STL file", data=build_stl(area_3d), file_name="your_custom_model.stl", type="primary", use_container_width=True):
                 st.session_state["downloaded"] = True
                 st.rerun()
                         
