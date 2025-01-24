@@ -1,5 +1,13 @@
-# exclude cache
+# exclude cache, downloads
 data/cache/*
+data/dhm/*
+data/open_topo/*
+
+# exclude containers
+.devcontainer
+
+# exclude credentials
+*credentials*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
