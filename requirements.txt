@@ -6,8 +6,14 @@ geopandas
 pyogrio
 vtk
 geopandas
+earthengine-api
+jupyterlab      >=3 
+ipywidgets 
+pyvista[all,trame]
+
 folium
 streamlit-folium
+
 geojson
 plotly
 panel>=1.4.1
